@@ -13,12 +13,6 @@ app.use(cookieParser());
 app.use(cors()); // ai line ta add kore amra cors middleware use korechi, jate amra cross-origin resource sharing (CORS) support korte pari, jate amra onno domain theke amader server e request korte pari.
 
 
-app.use(
-  cors({
-    origin: "http://localhost:3000",
-    credentials: true,
-  })
-);
 
 //copy from mongobd driver documentation step 1: npm install mongodb.
 
@@ -63,6 +57,67 @@ async function server() {
       const result = await cursor.toArray();
       res.json(result); //res.send() use kora jay but res.json() use korle json format e data send kore, tai amra res.json() use korechi.
     });
+
+
+
+
+    const facilitiesRoutes =
+  require("./routes/facilities");
+
+const bookingsRoutes =
+  require("./routes/bookings");
+
+app.use(
+  "/facilities",
+  facilitiesRoutes(db)
+);
+
+app.use(
+  "/bookings",
+  bookingsRoutes(db)
+);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
