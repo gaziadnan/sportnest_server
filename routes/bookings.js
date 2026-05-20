@@ -2,6 +2,38 @@ const express = require("express");
 
 const router = express.Router();
 
+const { ObjectId } = require("mongodb");
+
+
+router.delete(
+  "/bookings/:id",
+  async (req, res) => {
+    try {
+      const id =
+        req.params.id;
+
+      const query = {
+        _id: new ObjectId(
+          id
+        ),
+      };
+
+      const result =
+        await bookingsCollection.deleteOne(
+          query
+        );
+
+      res.send(result);
+    } catch (error) {
+      res.status(500).send({
+        message:
+          "Failed to delete booking",
+      });
+    }
+  }
+);
+
+
 module.exports = (
   bookingsCollection
 ) => {
