@@ -2,36 +2,73 @@ const express = require("express");
 
 const router = express.Router();
 
-module.exports = (db) => {
+module.exports = (
+  bookingsCollection
+) => {
+  /* POST BOOKING */
+  router.post(
+    "/",
+    async (req, res) => {
+      try {
+        const booking =
+          req.body;
 
-  // SAVE BOOKING
-  router.post("/", async (req, res) => {
+        const result =
+          await bookingsCollection.insertOne(
+            booking
+          );
 
-    const booking = req.body;
+        res.send(result);
+      } catch (error) {
+        res
+          .status(500)
+          .send({
+            message:
+              "Failed to save booking",
+          });
+      }
+    }
+  );
 
-    const result =
-      await db
-        .collection("bookings")
-        .insertOne(booking);
+  /* GET MY BOOKINGS */
+  router.get(
+    "/",
+    async (req, res) => {
+      const email =
+        req.query.email;
 
-    res.send(result);
-  });
+      const query = {
+        userEmail: email,
+      };
 
-  // USER BOOKINGS
-  router.get("/:email", async (req, res) => {
+      const result =
+        await bookingsCollection
+          .find(query)
+          .toArray();
 
-    const email = req.params.email;
+      res.send(result);
+    }
+  );
 
-    const result =
-      await db
-        .collection("bookings")
-        .find({
-          userEmail: email,
-        })
-        .toArray();
+  /* DELETE BOOKING */
+  router.delete(
+    "/:id",
+    async (req, res) => {
+      const id =
+        req.params.id;
 
-    res.send(result);
-  });
+      const query = {
+        _id: new ObjectId(id),
+      };
+
+      const result =
+        await bookingsCollection.deleteOne(
+          query
+        );
+
+      res.send(result);
+    }
+  );
 
   return router;
 };

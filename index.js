@@ -49,7 +49,7 @@ async function server() {
     });
 
 
-    const bookingsCollection = db.collection("bookings_collection"); // products collection e connect korchi
+    const bookingsCollection = db.collection("bookings"); // products collection e connect korchi
 
 
     app.get("/bookings", async (req, res) => {
@@ -72,14 +72,22 @@ app.use(
   facilitiesRoutes(db)
 );
 
+// app.use(
+//   "/bookings",
+//   bookingsRoutes(db)
+// );
+
 app.use(
   "/bookings",
-  bookingsRoutes(db)
+  bookingsRoutes(
+    bookingsCollection
+  )
 );
 
 
-
-
+const {
+  ObjectId,
+} = require("mongodb");
 
 
 
