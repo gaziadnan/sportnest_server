@@ -42,11 +42,33 @@ async function server() {
     const facilitiesCollection = db.collection("facilities_collection"); // products collection e connect korchi
 
 
-    app.get("/facilities", async (req, res) => {
-      const cursor = facilitiesCollection.find();
-      const result = await cursor.toArray();
-      res.json(result); //res.send() use kora jay but res.json() use korle json format e data send kore, tai amra res.json() use korechi.
-    });
+    // app.get("/facilities", async (req, res) => {
+    //   const cursor = facilitiesCollection.find();
+    //   const result = await cursor.toArray();
+    //   res.json(result); //res.send() use kora jay but res.json() use korle json format e data send kore, tai amra res.json() use korechi.
+    // });
+
+
+
+//     app.get("/facilities/:id", async (req, res) => {
+
+//   const id = req.params.id;
+
+//   const query = {
+//     _id: new ObjectId(id),
+//   };
+
+//   const result =
+//     await facilitiesCollection.findOne(query);
+
+//   res.send(result);
+// });
+
+
+
+
+
+
 
 
     const bookingsCollection = db.collection("bookings"); // products collection e connect korchi
@@ -152,19 +174,19 @@ app.delete("/bookings/:id", async (req, res) => {
 
     // Get a single product by ID
 
-    app.get("/facilities/:id", async (req, res) => {
+    // app.get("/facilities/:id", async (req, res) => {
 
-      const id = req.params.id;
+    //   const id = req.params.id;
 
-      const query = {
-        _id: new ObjectId(id),
-      };
+    //   const query = {
+    //     _id: new ObjectId(id),
+    //   };
 
-      const result =
-        await facilitiesCollection.findOne(query);
+    //   const result =
+    //     await facilitiesCollection.findOne(query);
 
-      res.send(result);
-    });
+    //   res.send(result);
+    // });
 
 
     console.log(
