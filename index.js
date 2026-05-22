@@ -1,39 +1,20 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
 const port = process.env.PORT || 8000;
 
-const allowedOrigins = [
-  "http://localhost:3000",
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
 app.use(express.json());
 app.use(cookieParser());
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`CORS blocked request from origin: ${origin}`);
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: ["http://localhost:3000", process.env.FRONTEND_URL],
+  credentials: true,
+}));
 
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = process.env.DB_URI;
-
-if (!uri) {
-  console.error("DB_URI is not defined in environment variables. Exiting.");
-  process.exit(1);
-}
 
 const client = new MongoClient(uri, {
   serverApi: {
@@ -43,16 +24,13 @@ const client = new MongoClient(uri, {
   },
 });
 
-async function startServer() {
+async function server() {
   try {
     await client.connect();
-    console.log("MongoDB connection established successfully.");
-
-    await client.db("admin").command({ ping: 1 });
-    console.log("MongoDB ping successful.");
+    console.log("Connected to MongoDB successfully.");
 
     const db = client.db("sportnest");
-    console.log("Database selected: sportnest");
+    console.log("Database: sportnest");
 
     const facilitiesCollection = db.collection("facilities_collection");
     console.log("Collection ready: facilities_collection");
@@ -70,50 +48,32 @@ async function startServer() {
     console.log("Route mounted: /bookings");
 
     app.delete("/bookings/:id", async (req, res) => {
-      const { id } = req.params;
-      console.log(`DELETE /bookings/${id} — request received`);
-
       try {
+        const id = req.params.id;
+        console.log(`DELETE /bookings/${id}`);
+
         const query = { _id: new ObjectId(id) };
         const result = await bookingsCollection.deleteOne(query);
+        console.log(`Booking ${id} deleted.`);
 
-        if (result.deletedCount === 0) {
-          console.warn(`DELETE /bookings/${id} — booking not found`);
-          return res.status(404).json({ message: "Booking not found" });
-        }
-
-        console.log(`DELETE /bookings/${id} — deleted successfully`);
-        res.json({ success: true, deletedCount: result.deletedCount });
+        res.json(result);
       } catch (error) {
-        console.error(`DELETE /bookings/${id} — error:`, error.message);
+        console.error("Delete booking error:", error.message);
         res.status(500).json({ message: "Failed to delete booking" });
       }
     });
 
-  } catch (error) {
-    console.error("Failed to start server:", error.message);
-    process.exit(1);
+  } finally {
   }
 }
 
-startServer();
+server().catch(console.dir);
 
 app.get("/", (req, res) => {
   console.log("GET / — health check");
-  res.json({ status: "OK", message: "SportNest server is running" });
-});
-
-app.use((req, res) => {
-  console.warn(`404 — ${req.method} ${req.originalUrl} not found`);
-  res.status(404).json({ message: `Route ${req.originalUrl} not found` });
-});
-
-app.use((err, req, res, next) => {
-  console.error("Unhandled error:", err.message);
-  res.status(500).json({ message: "Internal server error" });
+  res.send("Hello World");
 });
 
 app.listen(port, () => {
   console.log(`Server is running on PORT ${port}`);
-  console.log(`Allowed origins: ${allowedOrigins.join(", ")}`);
 });
