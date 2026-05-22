@@ -1,6 +1,7 @@
 const express = require("express");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 
 const app = express();
@@ -13,7 +14,6 @@ app.use(cors({
   credentials: true,
 }));
 
-const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const uri = process.env.DB_URI;
 
 const client = new MongoClient(uri, {
@@ -27,51 +27,150 @@ const client = new MongoClient(uri, {
 async function server() {
   try {
     await client.connect();
-    console.log("Connected to MongoDB successfully.");
+    console.log("Connected to MongoDB.");
 
     const db = client.db("sportnest");
-    console.log("Database: sportnest");
-
     const facilitiesCollection = db.collection("facilities_collection");
-    console.log("Collection ready: facilities_collection");
-
     const bookingsCollection = db.collection("bookings");
-    console.log("Collection ready: bookings");
+    console.log("Collections ready.");
 
-    const facilitiesRoutes = require("./routes/facilities");
-    const bookingsRoutes = require("./routes/bookings");
+    // ===================== FACILITIES =====================
 
-    app.use("/facilities", facilitiesRoutes(db));
-    console.log("Route mounted: /facilities");
+    app.get("/facilities", async (req, res) => {
+      try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 9;
+        const skip = (page - 1) * limit;
+        console.log(`GET /facilities — page:${page}`);
+        const total = await facilitiesCollection.countDocuments();
+        const facilities = await facilitiesCollection.find().skip(skip).limit(limit).toArray();
+        res.json({ total, facilities });
+      } catch (error) {
+        console.error("GET /facilities — error:", error.message);
+        res.status(500).json({ message: "Failed to fetch facilities" });
+      }
+    });
 
-    app.use("/bookings", bookingsRoutes(bookingsCollection));
-    console.log("Route mounted: /bookings");
+    app.get("/facilities/my-facilities", async (req, res) => {
+      try {
+        const email = req.query.email;
+        console.log("GET /my-facilities — email:", email);
+        const result = await facilitiesCollection.find({ owner_email: email }).toArray();
+        res.json(result);
+      } catch (error) {
+        console.error("GET /my-facilities — error:", error.message);
+        res.status(500).json({ message: "Failed to fetch facilities" });
+      }
+    });
+
+    app.get("/facilities/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        console.log("GET /facilities/:id —", id);
+        const result = await facilitiesCollection.findOne({ _id: new ObjectId(id) });
+        if (!result) return res.status(404).json({ message: "Facility not found" });
+        res.json(result);
+      } catch (error) {
+        console.error("GET /facilities/:id — error:", error.message);
+        res.status(500).json({ message: "Failed to fetch facility" });
+      }
+    });
+
+    app.post("/facilities", async (req, res) => {
+      try {
+        console.log("POST /facilities — inserting");
+        const result = await facilitiesCollection.insertOne(req.body);
+        res.json(result);
+      } catch (error) {
+        console.error("POST /facilities — error:", error.message);
+        res.status(500).json({ message: "Failed to add facility" });
+      }
+    });
+
+    app.put("/facilities/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        const data = req.body;
+        console.log("PUT /facilities/:id —", id);
+        const updatedFields = {};
+        Object.keys(data).forEach((key) => {
+          if (data[key] !== "" && data[key] !== null && data[key] !== undefined) {
+            updatedFields[key] = data[key];
+          }
+        });
+        const result = await facilitiesCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedFields }
+        );
+        res.json(result);
+      } catch (error) {
+        console.error("PUT /facilities/:id — error:", error.message);
+        res.status(500).json({ message: "Update failed" });
+      }
+    });
+
+    app.delete("/facilities/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        console.log("DELETE /facilities/:id —", id);
+        const result = await facilitiesCollection.deleteOne({ _id: new ObjectId(id) });
+        res.json(result);
+      } catch (error) {
+        console.error("DELETE /facilities/:id — error:", error.message);
+        res.status(500).json({ message: "Delete failed" });
+      }
+    });
+
+    // ===================== BOOKINGS =====================
+
+    app.get("/bookings", async (req, res) => {
+      try {
+        const email = req.query.email;
+        console.log("GET /bookings — email:", email);
+        const result = await bookingsCollection.find({ userEmail: email }).toArray();
+        res.json(result);
+      } catch (error) {
+        console.error("GET /bookings — error:", error.message);
+        res.status(500).json({ message: "Failed to fetch bookings" });
+      }
+    });
+
+    app.post("/bookings", async (req, res) => {
+      try {
+        console.log("POST /bookings — inserting");
+        const result = await bookingsCollection.insertOne(req.body);
+        res.json(result);
+      } catch (error) {
+        console.error("POST /bookings — error:", error.message);
+        res.status(500).json({ message: "Failed to save booking" });
+      }
+    });
 
     app.delete("/bookings/:id", async (req, res) => {
       try {
         const id = req.params.id;
-        console.log(`DELETE /bookings/${id}`);
-
-        const query = { _id: new ObjectId(id) };
-        const result = await bookingsCollection.deleteOne(query);
-        console.log(`Booking ${id} deleted.`);
-
+        console.log("DELETE /bookings/:id —", id);
+        const result = await bookingsCollection.deleteOne({ _id: new ObjectId(id) });
+        if (result.deletedCount === 0) return res.status(404).json({ message: "Booking not found" });
         res.json(result);
       } catch (error) {
-        console.error("Delete booking error:", error.message);
+        console.error("DELETE /bookings/:id — error:", error.message);
         res.status(500).json({ message: "Failed to delete booking" });
       }
     });
 
-  } finally {
+    console.log("All routes mounted.");
+
+  } catch (error) {
+    console.error("Failed to connect to MongoDB:", error.message);
+    process.exit(1);
   }
 }
 
-server().catch(console.dir);
+server();
 
 app.get("/", (req, res) => {
-  console.log("GET / — health check");
-  res.send("Hello World");
+  res.send("SportNest server is running.");
 });
 
 app.listen(port, () => {
